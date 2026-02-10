@@ -15,9 +15,10 @@ jobs:
     - name: Detect changed files
       id: changes
       run: |
-        git fetch origin main --depth=1
-        CHANGED=$(git diff --name-only origin/main $GITHUB_SHA | tr '\n' ' ')
+        git fetch --prune
+        CHANGED=$(git diff --name-only HEAD~1 HEAD | tr '\n' ' ')
         echo "files=$CHANGED" >> $GITHUB_OUTPUT
+        echo "Changed files: $CHANGED"
 
     # Sonar Scan ONLY if source code changed
     - name: SonarCloud Scan
