@@ -1,8 +1,7 @@
 name: Docker CI Pipeline
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:   # No push trigger
 
 jobs:
   build-scan-push:
@@ -11,9 +10,18 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    # SonarCloud Code Quality Scan
+
+    # Detect Code Changes
+    - name: Detect changed files
+      id: changes
+      run: |
+        git fetch origin main --depth=1
+        CHANGED=$(git diff --name-only origin/main $GITHUB_SHA | tr '\n' ' ')
+        echo "files=$CHANGED" >> $GITHUB_OUTPUT
+
+    # Sonar Scan ONLY if source code changed
     - name: SonarCloud Scan
+      if: contains(steps.changes.outputs.files, 'src/')
       uses: SonarSource/sonarcloud-github-action@v2
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -23,20 +31,23 @@ jobs:
           -Dsonar.organization=${{ secrets.SONAR_ORG }}
           -Dsonar.sources=.
 
-    # Login to DockerHub
+    # DockerHub Login ONLY if Dockerfile changed
     - name: Login to DockerHub
+      if: contains(steps.changes.outputs.files, 'Dockerfile') || contains(steps.changes.outputs.files, 'src/')
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Build Docker Image
+    # Build Docker Image ONLY if code changed
     - name: Build Docker Image
+      if: contains(steps.changes.outputs.files, 'Dockerfile') || contains(steps.changes.outputs.files, 'src/')
       run: |
         docker build -t ${{ secrets.DOCKER_USERNAME }}/triggering:${{ github.sha }} .
 
-    # Scan Docker Image using Trivy
+    # Scan Docker Image
     - name: Scan Docker Image
+      if: contains(steps.changes.outputs.files, 'Dockerfile') || contains(steps.changes.outputs.files, 'src/')
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ secrets.DOCKER_USERNAME }}/triggering:${{ github.sha }}
@@ -45,8 +56,10 @@ jobs:
 
     # Push Docker Image
     - name: Push Docker Image to Docker Hub
+      if: contains(steps.changes.outputs.files, 'Dockerfile') || contains(steps.changes.outputs.files, 'src/')
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/triggering:${{ github.sha }}
+
 
       
           
