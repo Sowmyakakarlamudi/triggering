@@ -33,20 +33,20 @@ jobs:
     # Build Docker Image
     - name: Build Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/repo-1-sample-app:${{ github.sha }} .
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/triggering:${{ github.sha }} .
 
     # Scan Docker Image using Trivy
     - name: Scan Docker Image
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ secrets.DOCKER_USERNAME }}/repo-1-sample-app:${{ github.sha }}
+        image-ref: ${{ secrets.DOCKER_USERNAME }}/triggering:${{ github.sha }}
         format: table
         exit-code: '0'
 
     # Push Docker Image
     - name: Push Docker Image to Docker Hub
       run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/repo-1-sample-app:${{ github.sha }}
+        docker push ${{ secrets.DOCKER_USERNAME }}/triggering:${{ github.sha }}
 
       
           
